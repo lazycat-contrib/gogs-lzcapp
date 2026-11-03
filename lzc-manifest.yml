@@ -1,6 +1,11 @@
 application:
   subdomain: gogs
   multi_instance: false
+  # Gogs has its own login; a second platform gate in front of it breaks basic
+  # git-over-HTTP (clients cannot follow the auth redirect) and doubles the
+  # sign-in. Expose it directly and let Gogs authenticate.
+  public_path:
+    - /
   upstreams:
     - location: /package-licenses/
       backend: file:///lzcapp/pkg/content/licenses/
@@ -48,7 +53,8 @@ usage: |
     账号密码来自安装参数，密码默认随机生成。
   - 自助注册默认关闭，账号只能由管理员在后台添加。
   - 配置里的 SECRET_KEY 首次启动随机生成并写进 app.ini，重启不会掉登录态。
-  - 应用经懒猫入口鉴权访问。
+  - 应用直接对外开放，由 Gogs 自己的登录页鉴权（未登录看不到任何仓库内容）：
+    自带账号体系的服务再套一层平台鉴权会让 git 客户端无法跟随跳转，所以这里用 public_path。
 
   说明：
   - 单容器 + 内置 SQLite，不需要额外数据库。
