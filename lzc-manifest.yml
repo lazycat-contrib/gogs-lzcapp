@@ -1,0 +1,60 @@
+application:
+  subdomain: gogs
+  multi_instance: false
+  upstreams:
+    - location: /package-licenses/
+      backend: file:///lzcapp/pkg/content/licenses/
+    - location: /
+      backend: http://gogs:3000/
+
+services:
+  gogs:
+    # upstream: gogs/gogs:0.14.3
+    image: docker.1ms.run/gogs/gogs:0.14.3
+    entrypoint:
+      - /bin/sh
+      - /lzcapp/pkg/content/entrypoint.sh
+    environment:
+      # entrypoint.sh substitutes this into app.ini so clone URLs and redirects
+      # point at the public host instead of the container.
+      - GOGS_DOMAIN={{ .S.AppDomain }}
+      - GOGS_ADMIN_USER={{ .U.admin_username }}
+      - |-
+        GOGS_ADMIN_PASSWORD={{ .U.admin_password }}
+      - GOGS_ADMIN_EMAIL={{ .U.admin_email }}
+      # The installer is locked off (INSTALL_LOCK=true in the config), so there
+      # is no window where a visitor could claim the admin account.
+      - TZ=Asia/Shanghai
+    binds:
+      # sqlite database, repositories, avatars, logs, sessions and app.ini
+      - /lzcapp/var/data:/data
+      # the packaged config template and entrypoint must be readable inside
+      - /lzcapp/pkg/content:/lzcapp/pkg/content:ro
+
+usage: |
+  Gogs 是轻量的自托管 Git 服务。代码仓库、issue、webhook 都放在自己这里，资源占用比 GitLab 小很多，适合个人或小团队内部托管代码。
+
+  使用方法：
+  1. 打开应用，用安装时设置的管理员账号登录（用户名、密码、邮箱都在安装参数里）。
+  2. 点右上角「+」新建仓库，本地 `git remote add origin https://你的域名/用户名/仓库.git` 推代码。
+  3. 在仓库设置里可以加协作者、配 webhook；后台管理页能建新用户、审核注册。
+
+  数据与安全：
+  - 所有数据都在 /lzcapp/var/data：SQLite 库、Git 仓库、头像、日志、会话。
+    卸载会一并删除，请定期备份。
+  - **有意关掉 Web 安装向导**（INSTALL_LOCK=true）。向导的用途是让第一个访客
+    自己设置域名和管理员，装在公网上等于把管理员账号敞开给人抢。
+    因此管理员改为启动时用 `gogs admin create-user` 创建，
+    账号密码来自安装参数，密码默认随机生成。
+  - 自助注册默认关闭，账号只能由管理员在后台添加。
+  - 配置里的 SECRET_KEY 首次启动随机生成并写进 app.ini，重启不会掉登录态。
+  - 应用经懒猫入口鉴权访问。
+
+  说明：
+  - 单容器 + 内置 SQLite，不需要额外数据库。
+  - **SSH 克隆已关闭**（DISABLE_SSH=true）：只提供 HTTP(S) 克隆，
+    因为懒猫入口不转发 22 端口。要在本机用 SSH 需要额外映射端口。
+  - 首次启动要初始化数据库，打开可能需要等十几秒。
+  - 未配置邮件，邮件通知和找回密码不可用。
+  - 未做真机验证：管理员登录、建仓库、推拉代码以及重启后数据留存
+    均未在设备上实测。

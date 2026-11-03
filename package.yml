@@ -1,0 +1,18 @@
+package: community.lazycat.app.gogs
+name: Gogs
+version: 0.0.0
+description: "Self-hosted Git service: lightweight repositories, issues and webhooks on your own box."
+min_os_version: "1.5.0"
+homepage: https://gogs.io/
+author: Gogs
+license: MIT
+permissions:
+  required:
+    - net.internet
+locales:
+  zh:
+    name: Gogs
+    description: "自托管 Git 服务：轻量的仓库托管，带 issue 与 webhook。"
+  en:
+    name: Gogs
+    description: "Self-hosted Git service: lightweight repositories, issues and webhooks on your own box."
